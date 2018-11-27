@@ -1,0 +1,335 @@
+<!DOCTYPE HTML>
+<html lang="bn">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+
+	<style>
+		@font-face {
+    font-family: 'SutonnyMj';
+		src: url('assets/fonts/SutonnyMj.ttf'),
+			url('assets/fonts/sutonnymj.woff2') format('woff2'),
+    	url('assets/fonts/sutonnymj.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'tonny71mjregular';
+    src: url('assets/fonts/tonny71mj-webfont.ttf'), 
+	 		url('tonny71mj-webfont.woff2') format('woff2'),
+         url('tonny71mj-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+		#text {
+			font-size: 18px;
+			height: 300px;
+			overflow: scroll;
+			overflow-x: hidden;
+			padding: 10px;
+			border: 1px solid #ddd;
+			line-height: 45px;
+			font-family: 'tonny71mjregular';
+		}
+		#input {
+			font-family: 'tonny71mjregular';
+			font-size: 20px;
+			width: 100%;
+			height: 150px;
+		}
+		.hightlight {
+			font-weight: lighter;
+			background: #f1f1f1;
+			border-radius: 3px;
+			padding: 0px 16px;
+			display: inline-block;
+			font-size: 20px;
+			transition: width 0.3s;
+			line-height: 35px;
+			font-weight: bold;
+			color: cornflowerblue;
+			vertical-align: middle;
+		}
+		.correct {
+			color: green;
+		}
+		.error {
+			color: red;
+		}
+	</style>
+</head>
+<body>
+	<p id="text">ĴŨũŗ ŅŨũő ųōŨŗŨř őŨŗĬ ōŬũŗ ũľ ΝŚŴō ŔŨŴřŨ ĴŨũŗ ųľ? ũľ ŖŨΝŴńŨę ĴŨũŗ ũľ ľŴř ŅŨőŚŨŗ ōŬũŗ Ŵľ? ųŝĵ ķЇř ōŬũŗ ŔŨŴΝĬ</p>
+	
+	<textarea rows="20" cols="200" type="text" id="input"></textarea>
+
+	<p id="timer">Timer: 3 min</p>
+
+	
+	<script>
+		// all my variables
+		var text = document.getElementById("text");
+		var data = text.textContent.trim().split(" ");
+		var input = document.getElementById("input");
+		var count = 0;
+		var setIntervalOnce = true;
+		var interval;
+		var lastValue = '';
+		var errorTone = new Audio('Error.wav');
+		var typeTone = new Audio('Click.wav');
+		var timerInMin = 3;
+
+
+		
+		var keyTest = {
+			// all my properties
+			stringData: text.textContent.trim(),
+			data: data,
+			totalWord: this.data.length,
+			finished: false,
+			wordMatch: [],
+			wordWithSpan: [],
+			iAmIn: 0,
+			subStringLen: 0,
+			whichWordYouAreIn: "you have to made it",
+			timer: null,
+			totalCorrectedWord: 0,
+			correctedWordTypedTime: 0,
+			totalTypedTime: 0,
+			totalInCorrectWord: 0,
+			incorrectWordTypedTime: 0,
+			WPM: 0,
+			givenTime: timerInMin,
+
+
+			// all my methods
+			moveNext: function() {
+				if(this.iAmIn < this.totalWord) {
+					this.iAmIn++;
+				}
+			},
+			createWordObject: function() {
+				for(var l = 0; l < this.data.length; l++) {
+					this.wordMatch[l] = {
+						word: this.data[l], 
+						match: null,
+						matchingTime: 0
+					}
+				}	
+			},
+			createWordWithSpan: function() {
+				for(var l = 0; l < this.data.length; l++) {
+					this.wordWithSpan[l] = "<span>" + HtmlEncode(this.data[l]) + "</span> ";
+				}
+			},
+			fillMatchData: function() {
+				var insert = '';
+				for(var l = 0; l < this.wordWithSpan.length; l++) {
+					insert += this.wordWithSpan[l];
+				}
+				text.innerHTML = insert;
+			},
+			addHighlightClass: function() {
+				if(this.iAmIn < this.wordWithSpan.length)
+					text.getElementsByTagName('span')[this.iAmIn].classList.add('hightlight');
+			},
+			removeHighLightClass: function() {
+				text.getElementsByTagName('span')[this.iAmIn].classList.remove('hightlight');
+			},
+			checkOk: function() {
+				if(this.wordMatch[this.iAmIn].match === true) {
+					text.getElementsByTagName('span')[this.iAmIn].classList.add('correct');
+				} else {
+					text.getElementsByTagName('span')[this.iAmIn].classList.add('error');
+				}
+				
+			},
+			get findished() {
+				
+			},
+			set finished(value) {
+				input.setAttribute("disabled", "true");
+				
+			},
+			set timer(value) {
+				if(value === -1) {
+					input.setAttribute("disabled", "true");
+					var correct = 0;
+					var correctedMatchingTime = 0;
+					var totalTypedTime = 0;
+					var incorrectWord = 0;
+					var incorrectMatchingTime = 0;
+					keyTest.wordMatch.forEach(function(value, index){
+						totalTypedTime += value.matchingTime;
+						if(value.match == true) {
+							correctedMatchingTime += value.matchingTime
+							correct++;
+						} else if(value.match === false) {
+							incorrectMatchingTime += value.matchingTime;
+							incorrectWord++;
+						}
+					});
+					this.totalCorrectedWord = correct;
+					this.correctedWordTypedTime = Math.round(correctedMatchingTime/100);
+					this.totalTypedTime = Math.round(totalTypedTime/100);
+					this.totalInCorrectWord = incorrectWord;
+					this.incorrectWordTypedTime = Math.round(incorrectMatchingTime/100);
+					this.WPM = Math.round(this.totalCorrectedWord/this.givenTime);
+				}
+				
+			}
+			
+			
+		}
+
+
+
+		// calling my method
+		keyTest.createWordObject();
+		keyTest.createWordWithSpan();
+		keyTest.fillMatchData();
+		keyTest.addHighlightClass();
+
+		// all my functions
+		function subStrLength() {
+			return input.value.length;
+		}
+		function countTimeForWord() {
+			count++;
+		}
+		function moreThanTwoSpace() {
+		 	var moreS = input.value.substring(input.value.length - 2);
+			if(moreS === "  ") {
+				return true;
+			}
+		}
+		function cT() {
+			var count = timerInMin * 60;
+			var counter = setInterval(timer, 1000); //1000 will  run it every 1 second
+			function timer() {
+					count = count - 1;
+					keyTest.timer = count;
+					if (count == -1) {
+							clearInterval(counter);
+							return;
+					}
+					var seconds = count % 60;
+					var minutes = Math.floor(count / 60);
+					var hours = Math.floor(minutes / 60);
+					minutes %= 60;
+					hours %= 60;
+
+					document.getElementById("timer").innerHTML = hours + " hours " + minutes + " minutes and " + seconds + " seconds left on this Sale!"; // watch for spelling
+			}
+		}
+
+		function HtmlEncode(s)
+		{
+			var el = document.createElement("div");
+			el.innerText = el.textContent = s;
+			s = el.innerHTML;
+			return s;
+		}
+		// all my events
+		input.oninput = function(e) {
+			
+
+			typeTone.play();
+			moreThanTwoSpace();
+			if(setIntervalOnce) {
+				interval = setInterval(countTimeForWord, 10);
+				setIntervalOnce = false;
+
+				// start the timper
+				cT();
+			}
+
+			if(keyTest.finished) {
+				return false;
+			}
+
+
+			if(keyTest.iAmIn < keyTest.totalWord) {
+
+							
+				if(e.data === " ") {
+
+					if(!moreThanTwoSpace() && input.value != " ") {
+						// remove hightlight class
+						keyTest.removeHighLightClass();
+
+						// check for correctness and error of word and addClass
+						keyTest.checkOk();
+
+						// move to next word
+						keyTest.moveNext();
+
+						// add highlight class
+						keyTest.addHighlightClass();
+
+						
+					}
+					
+
+
+					// get the last input charcter length
+					keyTest.subStringLen = subStrLength();
+
+					// start the new count for new word
+					count = 0;
+
+					if(keyTest.iAmIn === keyTest.totalWord) {
+						keyTest.finished = true;
+						clearInterval(interval);
+					}
+				} else {
+					if(keyTest.wordMatch[keyTest.iAmIn].word === input.value.substring(keyTest.subStringLen)) {
+						keyTest.wordMatch[keyTest.iAmIn].match = true;
+						keyTest.wordMatch[keyTest.iAmIn].matchingTime = count;
+					} else {
+						keyTest.wordMatch[keyTest.iAmIn].match = false;
+						keyTest.wordMatch[keyTest.iAmIn].matchingTime = count;
+					}
+				}
+			}
+
+			
+			
+				
+		}
+
+
+		input.onkeyup = function (e) {
+			lastValue = input.value;	
+		}
+
+
+		input.onkeydown = function(e) {
+			var s = input.value.length;
+			if(lastValue[lastValue.length - 1] === " ") {
+				if(e.code === "Backspace") {
+					errorTone.play();
+					e.preventDefault();
+				}
+			}
+		}
+
+		
+		
+		
+
+
+
+
+
+
+		
+
+		
+			
+		
+	</script>
+</body>
+</html>
